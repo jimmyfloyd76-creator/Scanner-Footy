@@ -38,10 +38,13 @@ st.markdown(
         background-color: rgba(14, 17, 23, 0.92) !important;
     }
 
-    /* Sfondo e bordo pulito per i campi numerici e di input nella sidebar */
-    [data-testid="stSidebar"] div[data-baseweb="input"] {
-        background-color: rgba(26, 31, 44, 0.95) !important;
+    /* Sfondo grigio pieno e ben definito per tutti i campi di input nella sidebar */
+    [data-testid="stSidebar"] div[data-baseweb="input"], 
+    [data-testid="stSidebar"] div[data-baseweb="base-input"],
+    [data-testid="stSidebar"] div[data-baseweb="select"] {
+        background-color: #262b36 !important;
         border-radius: 8px !important;
+        border: 1px solid #374151 !important;
     }
     
     [data-testid="stSidebar"] input {
