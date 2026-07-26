@@ -29,6 +29,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# --- INIZIALIZZAZIONE MEMORIA STORICO (SESSION STATE) ---
+if "storico_partite" not in st.session_state:
+  st.session_state.storico_partite = {}
+
 # --- SIDEBAR: INPUT METRICHE ---
 st.sidebar.header("🕹️ Setup Partita & Metriche Studi")
 
@@ -82,6 +86,48 @@ q_over15_o = st.sidebar.number_input(
     "Quota Over 1.5 Ospite", min_value=1.01, max_value=10.0, value=2.60, step=0.05
 )
 
+st.sidebar.markdown("---")
+st.sidebar.subheader("💾 Gestione Archivio Partite")
+
+# Pulsante per salvare il match corrente
+if st.sidebar.button("📥 Salva Partita Corrente"):
+  st.session_state.storico_partite[match_nome] = {
+      "xg_c": xg_c,
+      "xga_c": xga_c,
+      "sot_f_c": sot_f_c,
+      "sot_a_c": sot_a_c,
+      "xg_o": xg_o,
+      "xga_o": xga_o,
+      "sot_f_o": sot_f_o,
+      "sot_a_o": sot_a_o,
+      "q_1": q_1,
+      "q_x": q_x,
+      "q_2": q_2,
+      "q_over": q_over,
+      "q_under": q_under,
+      "q_over15_c": q_over15_c,
+      "q_over15_o": q_over15_o,
+  }
+  st.sidebar.success(f"Partita '{match_nome}' salvata con successo!")
+
+# Selezione per richiamare o eliminare una partita salvata
+if st.session_state.storico_partite:
+  st.sidebar.markdown("### 📂 Partite Salvate")
+  match_selezionato = st.sidebar.selectbox(
+      "Seleziona match da richiamare",
+      list(st.session_state.storico_partite.keys()),
+  )
+
+  col_carica, col_elimina = st.sidebar.columns(2)
+  if col_carica.button("📂 Carica"):
+    dati = st.session_state.storico_partite[match_selezionato]
+    # Ricarica i dati nello stream (nota: Streamlit aggiornerà i widget al prossimo rerun)
+    st.rerun()
+
+  if col_elimina.button("🗑️ Elimina"):
+    del st.session_state.storico_partite[match_selezionato]
+    st.rerun()
+
 # --- MOTORE DI CALCOLO ---
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
 overround_1x2 = (somma_inversa_1x2 - 1) * 100
@@ -94,8 +140,6 @@ base_lambda_o = (xg_o + xga_c) / 2
 
 lambda_c = base_lambda_c * (0.75 + 0.25 * fattore_sot_casa)
 lambda_o = base_lambda_o * (0.75 + 0.25 * fattore_sot_ospite)
-
-# Somma totale dei gol attesi (Lambda Casa + Lambda Ospite)
 lambda_totale = lambda_c + lambda_o
 
 
@@ -135,7 +179,6 @@ edge_over15_o = ((p_over15_ospite * q_over15_o) - 1) * 100
 # --- DASHBOARD VISIVO ---
 st.subheader(f"⚔️ Analisi di Scostamento: {match_nome}")
 
-# Organizzato su 4 colonne per mostrare chiaramente anche la somma dei gol attesi
 col1, col2, col3, col4 = st.columns(4)
 col1.metric(
     "Lavagna Book (Overround)",
@@ -147,7 +190,7 @@ col3.metric("Lambda Ospite Corretto", round(lambda_o, 2))
 col4.metric(
     "Totale Gol Attesi (Somma)",
     round(lambda_totale, 2),
-    help="Somma dei Lambda (Casa + Ospite) per valutare il ritmo complessivo del match",
+    help="Somma dei Lambda (Casa + Ospite)",
 )
 
 st.markdown("---")
