@@ -35,20 +35,29 @@ st.markdown(
 
     /* Rende semitrasparente la barra laterale (sidebar) */
     [data-testid="stSidebar"] {
-        background-color: rgba(14, 17, 23, 0.92) !important;
+        background-color: rgba(14, 17, 23, 0.95) !important;
     }
 
-    /* Sfondo grigio pieno e ben definito per tutti i campi di input nella sidebar */
-    [data-testid="stSidebar"] div[data-baseweb="input"], 
+    /* SFONDO GRIGIO PIENO E DEFINITO PER TUTTI I CAMPI INPUT NELLA SIDEBAR */
+    [data-testid="stSidebar"] div[data-baseweb="input"],
     [data-testid="stSidebar"] div[data-baseweb="base-input"],
-    [data-testid="stSidebar"] div[data-baseweb="select"] {
-        background-color: #262b36 !important;
-        border-radius: 8px !important;
-        border: 1px solid #374151 !important;
+    [data-testid="stSidebar"] span[data-baseweb="tag"] {
+        background-color: #4b5563 !important; /* Grigio medio ben visibile */
+        border-radius: 6px !important;
+        border: 1px solid #6b7280 !important;
     }
-    
+
+    /* Forza lo sfondo grigio anche sul box che racchiude il numero e i pulsanti +/- */
+    [data-testid="stSidebar"] [data-testid="stNumberInputContainer"] {
+        background-color: #374151 !important;
+        border-radius: 8px !important;
+        border: 1px solid #6b7280 !important;
+    }
+
+    /* Colore bianco brillante per i numeri e i testi dentro gli input */
     [data-testid="stSidebar"] input {
         color: #ffffff !important;
+        font-weight: 600 !important;
     }
     </style>
     """,
