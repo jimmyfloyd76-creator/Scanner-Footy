@@ -19,13 +19,13 @@ st.markdown(
 )
 
 st.markdown(
-    '<div class="main-title">🎯 BOOK KILLER ENGINE (xG + SoT In/Out Variant'
-    ' Matrix)</div>',
+    '<div class="main-title">🎯 BOOK KILLER ENGINE (xG + SoT Variant Matrix)'
+    "</div>",
     unsafe_allow_html=True,
 )
 st.markdown(
     '<div class="sub-title">Analisi Avanzata delle Inefficienze di Quota basata'
-    ' su xG, Tiri in Porta e Tiri Fuori</div>',
+    " su xG e Tiri in Porta</div>",
     unsafe_allow_html=True,
 )
 
@@ -43,12 +43,6 @@ sot_f_c = st.sidebar.number_input(
 sot_a_c = st.sidebar.number_input(
     "Shots on Target (In Porta) Subiti Casa", 0.0, 15.0, 3.8, 0.1
 )
-sot_out_f_c = st.sidebar.number_input(
-    "Shots Off Target (Fuori) Fatti Casa", 0.0, 20.0, 6.5, 0.1
-)
-sot_out_a_c = st.sidebar.number_input(
-    "Shots Off Target (Fuori) Subiti Casa", 0.0, 20.0, 5.0, 0.1
-)
 
 st.sidebar.subheader("✈️ Squadra Ospite (Metriche)")
 xg_o = st.sidebar.number_input("xG Prodotti Ospite", 0.0, 5.0, 1.25, 0.05)
@@ -58,12 +52,6 @@ sot_f_o = st.sidebar.number_input(
 )
 sot_a_o = st.sidebar.number_input(
     "Shots on Target (In Porta) Subiti Ospite", 0.0, 15.0, 4.9, 0.1
-)
-sot_out_f_o = st.sidebar.number_input(
-    "Shots Off Target (Fuori) Fatti Ospite", 0.0, 20.0, 5.5, 0.1
-)
-sot_out_a_o = st.sidebar.number_input(
-    "Shots Off Target (Fuori) Subiti Ospite", 0.0, 20.0, 6.0, 0.1
 )
 
 st.sidebar.markdown("---")
@@ -86,24 +74,20 @@ q_under = st.sidebar.number_input(
 )
 
 
-# --- MOTORE DI CALCOLO SCENARI (xG + SoT In + SoT Out CORRECTION) ---
+# --- MOTORE DI CALCOLO SCENARI (xG + SoT CORRECTION) ---
 # 1. Calcolo Overround (Lavagna del book)
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
 overround_1x2 = (somma_inversa_1x2 - 1) * 100
 
-# 2. Modello di incrocio avanzato comprensivo di tiri fuori (volume offensivo totale)
+# 2. Modello di incrocio basato su xG e Tiri in Porta (SoT)
 fattore_sot_casa = (sot_f_c + sot_a_o) / 9.0
 fattore_sot_ospite = (sot_f_o + sot_a_c) / 9.0
-
-# Ponderazione dei tiri fuori (impatto minore rispetto a quelli in porta, stimato al 10%)
-fattore_out_casa = (sot_out_f_c + sot_out_a_o) / 11.0
-fattore_out_ospite = (sot_out_f_o + sot_out_a_c) / 11.0
 
 base_lambda_c = (xg_c + xga_o) / 2
 base_lambda_o = (xg_o + xga_c) / 2
 
-lambda_c = base_lambda_c * (0.65 + 0.25 * fattore_sot_casa + 0.10 * fattore_out_casa)
-lambda_o = base_lambda_o * (0.65 + 0.25 * fattore_sot_ospite + 0.10 * fattore_out_ospite)
+lambda_c = base_lambda_c * (0.75 + 0.25 * fattore_sot_casa)
+lambda_o = base_lambda_o * (0.75 + 0.25 * fattore_sot_ospite)
 
 
 def poisson(lmbda, k):
@@ -139,11 +123,11 @@ st.subheader(f"⚔️ Analisi di Scostamento: {match_nome}")
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Lavagna Book (Overround)", f"{round(overround_1x2, 2)}%", delta_color="inverse")
-col2.metric("Lambda Casa Corretto (xG+SoT+Out)", round(lambda_c, 2))
-col3.metric("Lambda Ospite Corretto (xG+SoT+Out)", round(lambda_o, 2))
+col2.metric("Lambda Casa Corretto (xG+SoT)", round(lambda_c, 2))
+col3.metric("Lambda Ospite Corretto (xG+SoT)", round(lambda_o, 2))
 
 st.markdown("---")
-st.markdown("### 📊 Tabella Comparativa: Modello Integrato vs Bookmaker")
+st.markdown("### 📊 Tabella Comparativa: Modello (xG + SoT) vs Bookmaker")
 
 df_comparativa = pd.DataFrame({
     "Mercato / Segno": [
@@ -197,13 +181,13 @@ for mercato, val in edges.items():
   if val >= 3.5:
     valori_trovati = True
     st.success(
-        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello completo"
-        f" (xG + tiri in porta + tiri fuori) rileva un vantaggio stimato del"
-        f" **+{round(val, 1)}%** rispetto al banco."
+        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello (xG + Tiri in"
+        f" Porta) rileva un vantaggio stimato del **+{round(val, 1)}%** rispetto"
+        f" al banco."
     )
 
 if not valori_trovati:
   st.info(
       "🛡️ **NESSUN VARCO EVIDENTE**: Le quote del bookmaker riflettono"
-      " accuratamente il volume complessivo dei tiri registrati."
+      " accuratamente il rischio stimato."
   )
