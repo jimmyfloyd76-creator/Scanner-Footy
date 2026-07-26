@@ -8,7 +8,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY (FORZATO) ---
+# --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY ---
 st.markdown(
     """
     <style>
@@ -25,7 +25,7 @@ st.markdown(
     .main-title { font-size: 2.2rem; font-weight: 800; color: #f43f5e; text-align: center; }
     .sub-title { text-align: center; color: #9ca3af; margin-bottom: 20px; }
 
-    /* Rende semitrasparente il contenitore principale dei testi per far intravedere lo sfondo */
+    /* Rende semitrasparente il contenitore principale dei testi */
     .block-container {
         background-color: rgba(14, 17, 23, 0.85) !important;
         border-radius: 12px;
@@ -33,9 +33,19 @@ st.markdown(
         margin-top: 2rem;
     }
 
-    /* Rende semitrasparente anche la barra laterale (sidebar) per uniformarla */
+    /* Rende semitrasparente la barra laterale (sidebar) */
     [data-testid="stSidebar"] {
-        background-color: rgba(14, 17, 23, 0.90) !important;
+        background-color: rgba(14, 17, 23, 0.92) !important;
+    }
+
+    /* Sfondo e bordo pulito per i campi numerici e di input nella sidebar */
+    [data-testid="stSidebar"] div[data-baseweb="input"] {
+        background-color: rgba(26, 31, 44, 0.95) !important;
+        border-radius: 8px !important;
+    }
+    
+    [data-testid="stSidebar"] input {
+        color: #ffffff !important;
     }
     </style>
     """,
