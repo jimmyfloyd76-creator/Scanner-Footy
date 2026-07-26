@@ -19,13 +19,13 @@ st.markdown(
 )
 
 st.markdown(
-    '<div class="main-title">🎯 BOOK KILLER ENGINE (xG + SoT Variant Matrix)'
-    "</div>",
+    '<div class="main-title">🎯 BOOK KILLER ENGINE (xG + SoT In/Out Variant'
+    ' Matrix)</div>',
     unsafe_allow_html=True,
 )
 st.markdown(
     '<div class="sub-title">Analisi Avanzata delle Inefficienze di Quota basata'
-    " su xG e Tiri in Porta</div>",
+    ' su xG, Tiri in Porta e Tiri Fuori</div>',
     unsafe_allow_html=True,
 )
 
@@ -38,20 +38,32 @@ st.sidebar.subheader("🏠 Squadra di Casa (Metriche)")
 xg_c = st.sidebar.number_input("xG Prodotti Casa", 0.0, 5.0, 1.55, 0.05)
 xga_c = st.sidebar.number_input("xG Concessi Casa", 0.0, 5.0, 1.10, 0.05)
 sot_f_c = st.sidebar.number_input(
-    "Shots on Target (SoT) Fatti Casa", 0.0, 15.0, 5.2, 0.1
+    "Shots on Target (In Porta) Fatti Casa", 0.0, 15.0, 5.2, 0.1
 )
 sot_a_c = st.sidebar.number_input(
-    "Shots on Target (SoT) Subiti Casa", 0.0, 15.0, 3.8, 0.1
+    "Shots on Target (In Porta) Subiti Casa", 0.0, 15.0, 3.8, 0.1
+)
+sot_out_f_c = st.sidebar.number_input(
+    "Shots Off Target (Fuori) Fatti Casa", 0.0, 20.0, 6.5, 0.1
+)
+sot_out_a_c = st.sidebar.number_input(
+    "Shots Off Target (Fuori) Subiti Casa", 0.0, 20.0, 5.0, 0.1
 )
 
 st.sidebar.subheader("✈️ Squadra Ospite (Metriche)")
 xg_o = st.sidebar.number_input("xG Prodotti Ospite", 0.0, 5.0, 1.25, 0.05)
 xga_o = st.sidebar.number_input("xG Concessi Ospite", 0.0, 5.0, 1.30, 0.05)
 sot_f_o = st.sidebar.number_input(
-    "Shots on Target (SoT) Fatti Ospite", 0.0, 15.0, 4.4, 0.1
+    "Shots on Target (In Porta) Fatti Ospite", 0.0, 15.0, 4.4, 0.1
 )
 sot_a_o = st.sidebar.number_input(
-    "Shots on Target (SoT) Subiti Ospite", 0.0, 15.0, 4.9, 0.1
+    "Shots on Target (In Porta) Subiti Ospite", 0.0, 15.0, 4.9, 0.1
+)
+sot_out_f_o = st.sidebar.number_input(
+    "Shots Off Target (Fuori) Fatti Ospite", 0.0, 20.0, 5.5, 0.1
+)
+sot_out_a_o = st.sidebar.number_input(
+    "Shots Off Target (Fuori) Subiti Ospite", 0.0, 20.0, 6.0, 0.1
 )
 
 st.sidebar.markdown("---")
@@ -74,22 +86,24 @@ q_under = st.sidebar.number_input(
 )
 
 
-# --- MOTORE DI CALCOLO SCENARI (xG + SoT CORRECTION) ---
+# --- MOTORE DI CALCOLO SCENARI (xG + SoT In + SoT Out CORRECTION) ---
 # 1. Calcolo Overround (Lavagna del book)
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
 overround_1x2 = (somma_inversa_1x2 - 1) * 100
 
-# 2. Modello di incrocio avanzato: xG mediati con i tiri in porta effettivi (SoT)
-# Normalizziamo i tiri in porta rispetto a una media standard stimata (es. 4.5 tiri in porta a match)
+# 2. Modello di incrocio avanzato comprensivo di tiri fuori (volume offensivo totale)
 fattore_sot_casa = (sot_f_c + sot_a_o) / 9.0
 fattore_sot_ospite = (sot_f_o + sot_a_c) / 9.0
 
-# Calcolo dei Lambda (gol attesi corretti dal volume dei tiri nello specchio)
+# Ponderazione dei tiri fuori (impatto minore rispetto a quelli in porta, stimato al 10%)
+fattore_out_casa = (sot_out_f_c + sot_out_a_o) / 11.0
+fattore_out_ospite = (sot_out_f_o + sot_out_a_c) / 11.0
+
 base_lambda_c = (xg_c + xga_o) / 2
 base_lambda_o = (xg_o + xga_c) / 2
 
-lambda_c = base_lambda_c * (0.75 + 0.25 * fattore_sot_casa)
-lambda_o = base_lambda_o * (0.75 + 0.25 * fattore_sot_ospite)
+lambda_c = base_lambda_c * (0.65 + 0.25 * fattore_sot_casa + 0.10 * fattore_out_casa)
+lambda_o = base_lambda_o * (0.65 + 0.25 * fattore_sot_ospite + 0.10 * fattore_out_ospite)
 
 
 def poisson(lmbda, k):
@@ -125,11 +139,11 @@ st.subheader(f"⚔️ Analisi di Scostamento: {match_nome}")
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Lavagna Book (Overround)", f"{round(overround_1x2, 2)}%", delta_color="inverse")
-col2.metric("Lambda Casa Corretto (xG+SoT)", round(lambda_c, 2))
-col3.metric("Lambda Ospite Corretto (xG+SoT)", round(lambda_o, 2))
+col2.metric("Lambda Casa Corretto (xG+SoT+Out)", round(lambda_c, 2))
+col3.metric("Lambda Ospite Corretto (xG+SoT+Out)", round(lambda_o, 2))
 
 st.markdown("---")
-st.markdown("### 📊 Tabella Comparativa: Modello (xG + SoT) vs Bookmaker")
+st.markdown("### 📊 Tabella Comparativa: Modello Integrato vs Bookmaker")
 
 df_comparativa = pd.DataFrame({
     "Mercato / Segno": [
@@ -183,13 +197,13 @@ for mercato, val in edges.items():
   if val >= 3.5:
     valori_trovati = True
     st.success(
-        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello (basato su"
-        f" xG e tiri in porta) rileva un vantaggio stimato del"
+        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello completo"
+        f" (xG + tiri in porta + tiri fuori) rileva un vantaggio stimato del"
         f" **+{round(val, 1)}%** rispetto al banco."
     )
 
 if not valori_trovati:
   st.info(
       "🛡️ **NESSUN VARCO EVIDENTE**: Le quote del bookmaker riflettono"
-      " accuratamente il volume dei tiri e degli xG stimati."
+      " accuratamente il volume complessivo dei tiri registrati."
   )
