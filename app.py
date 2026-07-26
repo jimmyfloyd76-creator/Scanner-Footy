@@ -8,15 +8,27 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- PERSONALIZZAZIONE GRAFICA & SFONDO ---
+# --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE ---
 st.markdown(
     """
     <style>
     .main-title { font-size: 2.2rem; font-weight: 800; color: #f43f5e; text-align: center; }
     .sub-title { text-align: center; color: #9ca3af; margin-bottom: 20px; }
-    /* Esempio per personalizzare lo sfondo dell'app */
+    
+    /* Sfondo con immagine (puoi sostituire il link con qualsiasi altra immagine online) */
     .stApp {
-        background-color: #0e1117;
+        background-image: url("https://it.vecteezy.com/foto/57935753-classico-calcio-calcio-palla-illuminato-temi-vivace-blu-e-rosa-neon-luci-su-un-pendenza-sfondo-perfetto-per-gli-sport-e-ricreazione-copia-di-spazio-per-testo");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+    
+    /* Velo scuro semi-trasparente sul contenuto per renderlo perfettamente leggibile */
+    .block-container {
+        background-color: rgba(14, 17, 23, 0.90);
+        border-radius: 12px;
+        padding: 2rem;
     }
     </style>
     """,
@@ -94,7 +106,6 @@ q_over15_o = st.sidebar.number_input(
 st.sidebar.markdown("---")
 st.sidebar.subheader("💾 Gestione Archivio Partite")
 
-# Pulsante per salvare il match corrente
 if st.sidebar.button("📥 Salva Partita Corrente"):
   st.session_state.storico_partite[match_nome] = {
       "xg_c": xg_c,
@@ -115,7 +126,6 @@ if st.sidebar.button("📥 Salva Partita Corrente"):
   }
   st.sidebar.success(f"Partita '{match_nome}' salvata con successo!")
 
-# Selezione per richiamare o eliminare una partita salvata
 if st.session_state.storico_partite:
   st.sidebar.markdown("### 📂 Partite Salvate")
   match_selezionato = st.sidebar.selectbox(
@@ -125,7 +135,6 @@ if st.session_state.storico_partite:
 
   col_carica, col_elimina = st.sidebar.columns(2)
   if col_carica.button("📂 Carica"):
-    dati = st.session_state.storico_partite[match_selezionato]
     st.rerun()
 
   if col_elimina.button("🗑️ Elimina"):
@@ -210,7 +219,6 @@ df_comparativa = pd.DataFrame({
         "Over 1.5 Casa",
         "Over 1.5 Ospite",
     ],
-    # Arrotondamento delle quote book a numeri interi senza decimali (es. int() o round(..., 0))
     "Quota Book": [
         int(round(q_1, 0)),
         int(round(q_x, 0)),
@@ -229,7 +237,6 @@ df_comparativa = pd.DataFrame({
         f"{round(p_over15_casa*100, 1)}%",
         f"{round(p_over15_ospite*100, 1)}%",
     ],
-    # Arrotondamento delle quote eque reali a numeri interi senza decimali
     "Quota Equa Reale": [
         int(round(1 / p_1, 0)) if p_1 > 0 else 0,
         int(round(1 / p_x, 0)) if p_x > 0 else 0,
