@@ -8,33 +8,34 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY ---
+# --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY (FORZATO) ---
 st.markdown(
     """
     <style>
+    /* Forzatura dello sfondo principale e dell'intera app */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background-image: url("https://static.vecteezy.com/system/resources/previews/057/935/753/non_2x/classico-calcio-calcio-palla-illuminato-temi-vivace-blu-e-rosa-neon-luci-su-un-pendenza-sfondo-perfetto-per-gli-sport-e-ricreazione-copia-di-spazio-per-testo-foto.jpg") !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        background-attachment: fixed !important;
+        background-color: transparent !important;
+    }
+
     .main-title { font-size: 2.2rem; font-weight: 800; color: #f43f5e; text-align: center; }
     .sub-title { text-align: center; color: #9ca3af; margin-bottom: 20px; }
 
-    /* Sfondo forzato con l'immagine di Vecteezy */
-    [data-testid="stAppViewContainer"] {
-        background-image: url("https://static.vecteezy.com/system/resources/previews/057/935/753/non_2x/classico-calcio-calcio-palla-illuminato-temi-vivace-blu-e-rosa-neon-luci-su-un-pendenza-sfondo-perfetto-per-gli-sport-e-ricreazione-copia-di-spazio-per-testo-foto.jpg");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }
-
-    /* Rende trasparente l'header superiore */
-    [data-testid="stHeader"] {
-        background: rgba(0,0,0,0);
-    }
-
-    /* Velo scuro semi-trasparente sul contenuto centrale per mantenere i testi perfettamente leggibili */
+    /* Rende semitrasparente il contenitore principale dei testi per far intravedere lo sfondo */
     .block-container {
-        background-color: rgba(14, 17, 23, 0.90);
+        background-color: rgba(14, 17, 23, 0.85) !important;
         border-radius: 12px;
         padding: 2rem;
         margin-top: 2rem;
+    }
+
+    /* Rende semitrasparente anche la barra laterale (sidebar) per uniformarla */
+    [data-testid="stSidebar"] {
+        background-color: rgba(14, 17, 23, 0.90) !important;
     }
     </style>
     """,
@@ -225,7 +226,6 @@ df_comparativa = pd.DataFrame({
         "Over 1.5 Casa",
         "Over 1.5 Ospite",
     ],
-    # Formattazione delle quote a 2 decimali (es. 1.60)
     "Quota Book": [
         f"{q_1:.2f}",
         f"{q_x:.2f}",
@@ -244,7 +244,6 @@ df_comparativa = pd.DataFrame({
         f"{round(p_over15_casa*100, 1)}%",
         f"{round(p_over15_ospite*100, 1)}%",
     ],
-    # Formattazione delle quote eque reali a 2 decimali (es. 1.60)
     "Quota Equa Reale": [
         f"{(1 / p_1):.2f}" if p_1 > 0 else "0.00",
         f"{(1 / p_x):.2f}" if p_x > 0 else "0.00",
