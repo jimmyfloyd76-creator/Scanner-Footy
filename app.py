@@ -8,11 +8,16 @@ st.set_page_config(
     layout="wide",
 )
 
+# --- PERSONALIZZAZIONE GRAFICA & SFONDO ---
 st.markdown(
     """
     <style>
     .main-title { font-size: 2.2rem; font-weight: 800; color: #f43f5e; text-align: center; }
     .sub-title { text-align: center; color: #9ca3af; margin-bottom: 20px; }
+    /* Esempio per personalizzare lo sfondo dell'app */
+    .stApp {
+        background-color: #0e1117;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -121,7 +126,6 @@ if st.session_state.storico_partite:
   col_carica, col_elimina = st.sidebar.columns(2)
   if col_carica.button("📂 Carica"):
     dati = st.session_state.storico_partite[match_selezionato]
-    # Ricarica i dati nello stream (nota: Streamlit aggiornerà i widget al prossimo rerun)
     st.rerun()
 
   if col_elimina.button("🗑️ Elimina"):
@@ -206,7 +210,16 @@ df_comparativa = pd.DataFrame({
         "Over 1.5 Casa",
         "Over 1.5 Ospite",
     ],
-    "Quota Book": [q_1, q_x, q_2, q_over, q_under, q_over15_c, q_over15_o],
+    # Arrotondamento delle quote book a numeri interi senza decimali (es. int() o round(..., 0))
+    "Quota Book": [
+        int(round(q_1, 0)),
+        int(round(q_x, 0)),
+        int(round(q_2, 0)),
+        int(round(q_over, 0)),
+        int(round(q_under, 0)),
+        int(round(q_over15_c, 0)),
+        int(round(q_over15_o, 0)),
+    ],
     "Prob. Reale Modello": [
         f"{round(p_1*100, 1)}%",
         f"{round(p_x*100, 1)}%",
@@ -216,14 +229,15 @@ df_comparativa = pd.DataFrame({
         f"{round(p_over15_casa*100, 1)}%",
         f"{round(p_over15_ospite*100, 1)}%",
     ],
+    # Arrotondamento delle quote eque reali a numeri interi senza decimali
     "Quota Equa Reale": [
-        round(1 / p_1, 2) if p_1 > 0 else 0,
-        round(1 / p_x, 2) if p_x > 0 else 0,
-        round(1 / p_2, 2) if p_2 > 0 else 0,
-        round(1 / p_over25, 2) if p_over25 > 0 else 0,
-        round(1 / (1 - p_over25), 2) if (1 - p_over25) > 0 else 0,
-        round(1 / p_over15_casa, 2) if p_over15_casa > 0 else 0,
-        round(1 / p_over15_ospite, 2) if p_over15_ospite > 0 else 0,
+        int(round(1 / p_1, 0)) if p_1 > 0 else 0,
+        int(round(1 / p_x, 0)) if p_x > 0 else 0,
+        int(round(1 / p_2, 0)) if p_2 > 0 else 0,
+        int(round(1 / p_over25, 0)) if p_over25 > 0 else 0,
+        int(round(1 / (1 - p_over25), 0)) if (1 - p_over25) > 0 else 0,
+        int(round(1 / p_over15_casa, 0)) if p_over15_casa > 0 else 0,
+        int(round(1 / p_over15_ospite, 0)) if p_over15_ospite > 0 else 0,
     ],
     "Edge (Valore %)": [
         f"+{round(edge_1, 1)}%" if edge_1 > 0 else f"{round(edge_1, 1)}%",
