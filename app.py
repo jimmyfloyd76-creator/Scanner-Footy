@@ -8,34 +8,33 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY (FORZATO) ---
+# --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY ---
 st.markdown(
     """
     <style>
-    /* Forzatura dello sfondo principale e dell'intera app */
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-        background-image: url("https://static.vecteezy.com/system/resources/previews/057/935/753/non_2x/classico-calcio-calcio-palla-illuminato-temi-vivace-blu-e-rosa-neon-luci-su-un-pendenza-sfondo-perfetto-per-gli-sport-e-ricreazione-copia-di-spazio-per-testo-foto.jpg") !important;
-        background-size: cover !important;
-        background-position: center !important;
-        background-repeat: no-repeat !important;
-        background-attachment: fixed !important;
-        background-color: transparent !important;
-    }
-
     .main-title { font-size: 2.2rem; font-weight: 800; color: #f43f5e; text-align: center; }
     .sub-title { text-align: center; color: #9ca3af; margin-bottom: 20px; }
 
-    /* Rende semitrasparente il contenitore principale dei testi per far intravedere lo sfondo */
+    /* Sfondo forzato con l'immagine di Vecteezy */
+    [data-testid="stAppViewContainer"] {
+        background-image: url("https://static.vecteezy.com/system/resources/previews/057/935/753/non_2x/classico-calcio-calcio-palla-illuminato-temi-vivace-blu-e-rosa-neon-luci-su-un-pendenza-sfondo-perfetto-per-gli-sport-e-ricreazione-copia-di-spazio-per-testo-foto.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+
+    /* Rende trasparente l'header superiore */
+    [data-testid="stHeader"] {
+        background: rgba(0,0,0,0);
+    }
+
+    /* Velo scuro semi-trasparente sul contenuto centrale per mantenere i testi perfettamente leggibili */
     .block-container {
-        background-color: rgba(14, 17, 23, 0.85) !important;
+        background-color: rgba(14, 17, 23, 0.90);
         border-radius: 12px;
         padding: 2rem;
         margin-top: 2rem;
-    }
-
-    /* Rende semitrasparente anche la barra laterale (sidebar) per uniformarla */
-    [data-testid="stSidebar"] {
-        background-color: rgba(14, 17, 23, 0.90) !important;
     }
     </style>
     """,
@@ -227,13 +226,13 @@ df_comparativa = pd.DataFrame({
         "Over 1.5 Ospite",
     ],
     "Quota Book": [
-        f"{q_1:.2f}",
-        f"{q_x:.2f}",
-        f"{q_2:.2f}",
-        f"{q_over:.2f}",
-        f"{q_under:.2f}",
-        f"{q_over15_c:.2f}",
-        f"{q_over15_o:.2f}",
+        int(round(q_1, 0)),
+        int(round(q_x, 0)),
+        int(round(q_2, 0)),
+        int(round(q_over, 0)),
+        int(round(q_under, 0)),
+        int(round(q_over15_c, 0)),
+        int(round(q_over15_o, 0)),
     ],
     "Prob. Reale Modello": [
         f"{round(p_1*100, 1)}%",
@@ -245,13 +244,13 @@ df_comparativa = pd.DataFrame({
         f"{round(p_over15_ospite*100, 1)}%",
     ],
     "Quota Equa Reale": [
-        f"{(1 / p_1):.2f}" if p_1 > 0 else "0.00",
-        f"{(1 / p_x):.2f}" if p_x > 0 else "0.00",
-        f"{(1 / p_2):.2f}" if p_2 > 0 else "0.00",
-        f"{(1 / p_over25):.2f}" if p_over25 > 0 else "0.00",
-        f"{(1 / (1 - p_over25)):.2f}" if (1 - p_over25) > 0 else "0.00",
-        f"{(1 / p_over15_casa):.2f}" if p_over15_casa > 0 else "0.00",
-        f"{(1 / p_over15_ospite):.2f}" if p_over15_ospite > 0 else "0.00",
+        int(round(1 / p_1, 0)) if p_1 > 0 else 0,
+        int(round(1 / p_x, 0)) if p_x > 0 else 0,
+        int(round(1 / p_2, 0)) if p_2 > 0 else 0,
+        int(round(1 / p_over25, 0)) if p_over25 > 0 else 0,
+        int(round(1 / (1 - p_over25), 0)) if (1 - p_over25) > 0 else 0,
+        int(round(1 / p_over15_casa, 0)) if p_over15_casa > 0 else 0,
+        int(round(1 / p_over15_ospite, 0)) if p_over15_ospite > 0 else 0,
     ],
     "Edge (Valore %)": [
         f"+{round(edge_1, 1)}%" if edge_1 > 0 else f"{round(edge_1, 1)}%",
