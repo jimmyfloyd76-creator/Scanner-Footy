@@ -29,7 +29,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SIDEBAR: INPUT MANUALE DI PRECISIONE & METRICHE ---
+# --- SIDEBAR: INPUT METRICHE ---
 st.sidebar.header("🕹️ Setup Partita & Metriche Studi")
 
 match_nome = st.sidebar.text_input("Match (es. Squadra A vs Squadra B)", "Match #1")
@@ -82,13 +82,10 @@ q_over15_o = st.sidebar.number_input(
     "Quota Over 1.5 Ospite", min_value=1.01, max_value=10.0, value=2.60, step=0.05
 )
 
-
-# --- MOTORE DI CALCOLO SCENARI (xG + SoT CORRECTION) ---
-# 1. Calcolo Overround (Lavagna del book sul mercato 1X2)
+# --- MOTORE DI CALCOLO ---
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
 overround_1x2 = (somma_inversa_1x2 - 1) * 100
 
-# 2. Modello di incrocio basato su xG e Tiri in Porta (SoT)
 fattore_sot_casa = (sot_f_c + sot_a_o) / 9.0
 fattore_sot_ospite = (sot_f_o + sot_a_c) / 9.0
 
@@ -98,12 +95,14 @@ base_lambda_o = (xg_o + xga_c) / 2
 lambda_c = base_lambda_c * (0.75 + 0.25 * fattore_sot_casa)
 lambda_o = base_lambda_o * (0.75 + 0.25 * fattore_sot_ospite)
 
+# Somma totale dei gol attesi (Lambda Casa + Lambda Ospite)
+lambda_totale = lambda_c + lambda_o
+
 
 def poisson(lmbda, k):
   return (math.exp(-lmbda) * (lmbda**k)) / math.factorial(k)
 
 
-# Generazione matrice 6x6 per le varianti esatte e mercati specifici
 p_1, p_x, p_2 = 0.0, 0.0, 0.0
 p_over25 = 0.0
 p_over15_casa = 0.0
@@ -118,33 +117,38 @@ for i in range(6):
       p_x += prob_punteggio
     else:
       p_2 += prob_punteggio
-
     if i + j > 2:
       p_over25 += prob_punteggio
-
     if i >= 2:
       p_over15_casa += prob_punteggio
     if j >= 2:
       p_over15_ospite += prob_punteggio
 
-# 3. Calcolo Edge / Scarto contro il Bookmaker
 edge_1 = ((p_1 * q_1) - 1) * 100
 edge_x = ((p_x * q_x) - 1) * 100
 edge_2 = ((p_2 * q_2) - 1) * 100
-
 edge_over = ((p_over25 * q_over) - 1) * 100
 edge_under = (((1 - p_over25) * q_under) - 1) * 100
-
 edge_over15_c = ((p_over15_casa * q_over15_c) - 1) * 100
 edge_over15_o = ((p_over15_ospite * q_over15_o) - 1) * 100
 
-# --- DASHBOARD VISIVO DI ATTACCO AL BOOK ---
+# --- DASHBOARD VISIVO ---
 st.subheader(f"⚔️ Analisi di Scostamento: {match_nome}")
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Lavagna Book (Overround)", f"{round(overround_1x2, 2)}%", delta_color="inverse")
-col2.metric("Lambda Casa Corretto (xG+SoT)", round(lambda_c, 2))
-col3.metric("Lambda Ospite Corretto (xG+SoT)", round(lambda_o, 2))
+# Organizzato su 4 colonne per mostrare chiaramente anche la somma dei gol attesi
+col1, col2, col3, col4 = st.columns(4)
+col1.metric(
+    "Lavagna Book (Overround)",
+    f"{round(overround_1x2, 2)}%",
+    delta_color="inverse",
+)
+col2.metric("Lambda Casa Corretto", round(lambda_c, 2))
+col3.metric("Lambda Ospite Corretto", round(lambda_o, 2))
+col4.metric(
+    "Totale Gol Attesi (Somma)",
+    round(lambda_totale, 2),
+    help="Somma dei Lambda (Casa + Ospite) per valutare il ritmo complessivo del match",
+)
 
 st.markdown("---")
 st.markdown("### 📊 Tabella Comparativa: Modello Integrato vs Bookmaker")
@@ -195,7 +199,21 @@ df_comparativa = pd.DataFrame({
     ],
 })
 
-st.dataframe(df_comparativa, use_container_width=True)
+
+def evidenzia_positivo(val):
+  if isinstance(val, str) and val.startswith("+"):
+    return (
+        "color: #22c55e; font-weight: bold; background-color: rgba(34, 197, 94,"
+        " 0.1);"
+    )
+  return ""
+
+
+df_styled = df_comparativa.style.map(
+    evidenzia_positivo, subset=["Edge (Valore %)"]
+)
+
+st.dataframe(df_styled, use_container_width=True)
 
 st.markdown("---")
 st.markdown("### 🎯 Segnali di Inefficienza Rilevati (Value Finder)")
