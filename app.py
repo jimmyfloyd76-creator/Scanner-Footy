@@ -38,24 +38,24 @@ st.markdown(
         background-color: rgba(14, 17, 23, 0.95) !important;
     }
 
-    /* SFONDO GRIGIO PIENO E DEFINITO PER TUTTI I CAMPI INPUT NELLA SIDEBAR */
+    /* SFONDO GRIGIO PIENO E DEFINITO PER TUTTI I CAMPI DI INPUT, TESTO E SELECTBOX NELLA SIDEBAR */
     [data-testid="stSidebar"] div[data-baseweb="input"],
     [data-testid="stSidebar"] div[data-baseweb="base-input"],
-    [data-testid="stSidebar"] span[data-baseweb="tag"] {
-        background-color: #4b5563 !important; /* Grigio medio ben visibile */
-        border-radius: 6px !important;
+    [data-testid="stSidebar"] div[data-baseweb="select"] > div {
+        background-color: #374151 !important;
+        border-radius: 8px !important;
         border: 1px solid #6b7280 !important;
     }
 
-    /* Forza lo sfondo grigio anche sul box che racchiude il numero e i pulsanti +/- */
+    /* Forza lo sfondo grigio sul box dei numeri (number input) */
     [data-testid="stSidebar"] [data-testid="stNumberInputContainer"] {
         background-color: #374151 !important;
         border-radius: 8px !important;
         border: 1px solid #6b7280 !important;
     }
 
-    /* Colore bianco brillante per i numeri e i testi dentro gli input */
-    [data-testid="stSidebar"] input {
+    /* Colore bianco brillante per i testi e i numeri dentro gli input */
+    [data-testid="stSidebar"] input, [data-testid="stSidebar"] select {
         color: #ffffff !important;
         font-weight: 600 !important;
     }
@@ -309,29 +309,36 @@ df_styled = df_comparativa.style.map(
 st.dataframe(df_styled, use_container_width=True)
 
 st.markdown("---")
-st.markdown("### 🎯 Segnali di Inefficienza Rilevati (Value Finder)")
+st.markdown("### 🎯 Suggerimento: Un'Unica Giocata Consigliata")
 
-valori_trovati = False
-edges = {
-    "Segno 1": edge_1,
-    "Segno X": edge_x,
-    "Segno 2": edge_2,
-    "Over 2.5": edge_over,
-    "Under 2.5": edge_under,
-    "Over 1.5 Casa": edge_over15_c,
-    "Over 1.5 Ospite": edge_over15_o,
-}
+# Raccolta di tutti i mercati con i relativi edge e quote
+tutti_i_mercati = [
+    ("1 (Casa)", edge_1, q_1, p_1),
+    ("X (Pareggio)", edge_x, q_x, p_x),
+    ("2 (Ospite)", edge_2, q_2, p_2),
+    ("Over 2.5", edge_over, q_over, p_over25),
+    ("Under 2.5", edge_under, q_under, 1 - p_over25),
+    ("Over 1.5 Casa", edge_over15_c, q_over15_c, p_over15_casa),
+    ("Over 1.5 Ospite", edge_over15_o, q_over15_o, p_over15_ospite),
+]
 
-for mercato, val in edges.items():
-  if val >= 3.5:
-    valori_trovati = True
-    st.success(
-        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello rileva un"
-        f" vantaggio stimato del **+{round(val, 1)}%** rispetto al banco."
-    )
+# Ordina in base all'edge decrescente per trovare la scommessa con più valore in assoluto
+tutti_i_mercati.sort(key=lambda x: x[1], reverse=True)
+miglior_mercato, miglior_edge, miglior_quota, miglior_prob = tutti_i_mercati[0]
 
-if not valori_trovati:
-  st.info(
-      "🛡️ **NESSUN VARCO EVIDENTE**: Le quote del bookmaker sui vari mercati"
-      " sono ben allineate alle stime del modello."
+if miglior_edge > 0:
+  st.success(
+      f"💎 **TOP PICK CONSIGLIATA PER [{match_nome}]**\n\n"
+      f"- **Mercato Scelto:** {miglior_mercato}\n"
+      f"- **Quota di Banco:** {miglior_quota:.2f}\n"
+      f"- **Probabilità Stimata dal Modello:** {round(miglior_prob * 100, 1)}%\n"
+      f"- **Edge (Vantaggio Matematico):** +{round(miglior_edge, 1)}%\n\n"
+      "Questa è la quota che offre il disalineamento più favorevole rispetto"
+      " alle valutazioni del bookmaker."
+  )
+else:
+  st.warning(
+      "⚠️ Al momento nessun mercato presenta un vero e proprio valore"
+      " matematico positivo (+Edge). La giocata con minor scarto negativo"
+      f" risulta **{miglior_mercato}** a quota **{miglior_quota:.2f}**."
   )
