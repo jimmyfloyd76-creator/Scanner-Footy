@@ -24,8 +24,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<div class="sub-title">Analisi Avanzata delle Inefficienze di Quota basata'
-    " su xG e Tiri in Porta</div>",
+    '<div class="sub-title">Analisi Avanzata delle Inefficienze di Quota (1X2,'
+    " Over/Under 2.5, Over 1.5 Casa/Ospite)</div>",
     unsafe_allow_html=True,
 )
 
@@ -55,7 +55,7 @@ sot_a_o = st.sidebar.number_input(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("💰 Quote Reali del Bookmaker")
+st.sidebar.subheader("💰 Quote Reali del Bookmaker (1X2 & Totali)")
 q_1 = st.sidebar.number_input(
     "Quota 1", min_value=1.01, max_value=20.0, value=2.10, step=0.05
 )
@@ -73,9 +73,18 @@ q_under = st.sidebar.number_input(
     "Quota Under 2.5", min_value=1.01, max_value=10.0, value=1.80, step=0.05
 )
 
+st.sidebar.markdown("---")
+st.sidebar.subheader("💰 Quote Over 1.5 Squadra")
+q_over15_c = st.sidebar.number_input(
+    "Quota Over 1.5 Casa", min_value=1.01, max_value=10.0, value=2.20, step=0.05
+)
+q_over15_o = st.sidebar.number_input(
+    "Quota Over 1.5 Ospite", min_value=1.01, max_value=10.0, value=2.60, step=0.05
+)
+
 
 # --- MOTORE DI CALCOLO SCENARI (xG + SoT CORRECTION) ---
-# 1. Calcolo Overround (Lavagna del book)
+# 1. Calcolo Overround (Lavagna del book sul mercato 1X2)
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
 overround_1x2 = (somma_inversa_1x2 - 1) * 100
 
@@ -94,9 +103,11 @@ def poisson(lmbda, k):
   return (math.exp(-lmbda) * (lmbda**k)) / math.factorial(k)
 
 
-# Generazione matrice 6x6 per le varianti esatte
+# Generazione matrice 6x6 per le varianti esatte e mercati specifici
 p_1, p_x, p_2 = 0.0, 0.0, 0.0
 p_over25 = 0.0
+p_over15_casa = 0.0
+p_over15_ospite = 0.0
 
 for i in range(6):
   for j in range(6):
@@ -107,8 +118,14 @@ for i in range(6):
       p_x += prob_punteggio
     else:
       p_2 += prob_punteggio
+
     if i + j > 2:
       p_over25 += prob_punteggio
+
+    if i >= 2:
+      p_over15_casa += prob_punteggio
+    if j >= 2:
+      p_over15_ospite += prob_punteggio
 
 # 3. Calcolo Edge / Scarto contro il Bookmaker
 edge_1 = ((p_1 * q_1) - 1) * 100
@@ -117,6 +134,9 @@ edge_2 = ((p_2 * q_2) - 1) * 100
 
 edge_over = ((p_over25 * q_over) - 1) * 100
 edge_under = (((1 - p_over25) * q_under) - 1) * 100
+
+edge_over15_c = ((p_over15_casa * q_over15_c) - 1) * 100
+edge_over15_o = ((p_over15_ospite * q_over15_o) - 1) * 100
 
 # --- DASHBOARD VISIVO DI ATTACCO AL BOOK ---
 st.subheader(f"⚔️ Analisi di Scostamento: {match_nome}")
@@ -127,7 +147,7 @@ col2.metric("Lambda Casa Corretto (xG+SoT)", round(lambda_c, 2))
 col3.metric("Lambda Ospite Corretto (xG+SoT)", round(lambda_o, 2))
 
 st.markdown("---")
-st.markdown("### 📊 Tabella Comparativa: Modello (xG + SoT) vs Bookmaker")
+st.markdown("### 📊 Tabella Comparativa: Modello Integrato vs Bookmaker")
 
 df_comparativa = pd.DataFrame({
     "Mercato / Segno": [
@@ -136,14 +156,18 @@ df_comparativa = pd.DataFrame({
         "2 (Ospite)",
         "Over 2.5",
         "Under 2.5",
+        "Over 1.5 Casa",
+        "Over 1.5 Ospite",
     ],
-    "Quota Book": [q_1, q_x, q_2, q_over, q_under],
+    "Quota Book": [q_1, q_x, q_2, q_over, q_under, q_over15_c, q_over15_o],
     "Prob. Reale Modello": [
         f"{round(p_1*100, 1)}%",
         f"{round(p_x*100, 1)}%",
         f"{round(p_2*100, 1)}%",
         f"{round(p_over25*100, 1)}%",
         f"{round((1-p_over25)*100, 1)}%",
+        f"{round(p_over15_casa*100, 1)}%",
+        f"{round(p_over15_ospite*100, 1)}%",
     ],
     "Quota Equa Reale": [
         round(1 / p_1, 2) if p_1 > 0 else 0,
@@ -151,6 +175,8 @@ df_comparativa = pd.DataFrame({
         round(1 / p_2, 2) if p_2 > 0 else 0,
         round(1 / p_over25, 2) if p_over25 > 0 else 0,
         round(1 / (1 - p_over25), 2) if (1 - p_over25) > 0 else 0,
+        round(1 / p_over15_casa, 2) if p_over15_casa > 0 else 0,
+        round(1 / p_over15_ospite, 2) if p_over15_ospite > 0 else 0,
     ],
     "Edge (Valore %)": [
         f"+{round(edge_1, 1)}%" if edge_1 > 0 else f"{round(edge_1, 1)}%",
@@ -160,6 +186,12 @@ df_comparativa = pd.DataFrame({
         f"+{round(edge_under, 1)}%"
         if edge_under > 0
         else f"{round(edge_under, 1)}%",
+        f"+{round(edge_over15_c, 1)}%"
+        if edge_over15_c > 0
+        else f"{round(edge_over15_c, 1)}%",
+        f"+{round(edge_over15_o, 1)}%"
+        if edge_over15_o > 0
+        else f"{round(edge_over15_o, 1)}%",
     ],
 })
 
@@ -175,19 +207,20 @@ edges = {
     "Segno 2": edge_2,
     "Over 2.5": edge_over,
     "Under 2.5": edge_under,
+    "Over 1.5 Casa": edge_over15_c,
+    "Over 1.5 Ospite": edge_over15_o,
 }
 
 for mercato, val in edges.items():
   if val >= 3.5:
     valori_trovati = True
     st.success(
-        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello (xG + Tiri in"
-        f" Porta) rileva un vantaggio stimato del **+{round(val, 1)}%** rispetto"
-        f" al banco."
+        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello rileva un"
+        f" vantaggio stimato del **+{round(val, 1)}%** rispetto al banco."
     )
 
 if not valori_trovati:
   st.info(
-      "🛡️ **NESSUN VARCO EVIDENTE**: Le quote del bookmaker riflettono"
-      " accuratamente il rischio stimato."
+      "🛡️ **NESSUN VARCO EVIDENTE**: Le quote del bookmaker sui vari mercati"
+      " sono ben allineate alle stime del modello."
   )
