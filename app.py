@@ -1,64 +1,55 @@
 import pandas as pd
 import streamlit as st
 
-# Configurazione della pagina con layout largo
+# Configurazione della pagina
 st.set_page_config(
-    page_title="Scanner-Footy Pro | xG Value Engine",
-    page_icon="⚽",
-    layout="wide",
+    page_title="Scanner-Footy Pro", page_icon="⚽", layout="wide"
 )
 
-# --- STYLING CSS PERSONALIZZATO (Grafica moderna, sfondo e box dedicati) ---
+# --- FORZATURA GRAFICA PROFESSIONALE (Sfondo Scuro & Stile Terminale) ---
 st.markdown(
     """
     <style>
     .stApp {
-        background: linear-gradient(135deg, #0e1117 0%, #161b22 100%);
-        color: #e6edf3;
+        background-color: #0d1117;
+        color: #f0f6fc;
     }
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: 800;
+    .main-title {
+        font-size: 2.2rem;
+        font-weight: 700;
         color: #58a6ff;
         text-align: center;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0px;
     }
-    .sub-header {
+    .sub-title {
         text-align: center;
         color: #8b949e;
-        margin-bottom: 2rem;
+        margin-bottom: 30px;
     }
-    .metric-card {
-        background-color: #21262d;
+    .card {
+        background-color: #161b22;
         border: 1px solid #30363d;
         padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-    }
-    .highlight-box {
-        background-color: rgba(35, 134, 54, 0.15);
-        border: 1px solid #238636;
-        padding: 15px;
         border-radius: 8px;
-        color: #3fb950;
-        font-weight: 600;
+        margin-bottom: 20px;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# Intestazione grafica
+# Titolo dell'applicazione
 st.markdown(
-    '<div class="main-header">⚽ SCANNER-FOOTY PRO</div>', unsafe_allow_html=True
+    '<div class="main-title">⚽ SCANNER-FOOTY PRO</div>', unsafe_allow_html=True
 )
 st.markdown(
-    '<div class="sub-header">Advanced xG, Shots & Value Bet Analytics Engine</div>',
+    '<div class="sub-title">Advanced xG & Value Bet Analytical Engine</div>',
     unsafe_allow_html=True,
 )
 
-# Database esteso dei campionati e delle squadre principali
-database_squadre = {
+# Database interno completo per i campionati richiesti
+# Senza bisogno di API esterne: veloce, sicuro e sempre disponibile
+db_campionati = {
     "Spagna - Segunda División": {
         "Real Zaragoza": {
             "xG_fatti": 1.55,
@@ -177,121 +168,77 @@ database_squadre = {
     },
 }
 
-# Sidebar di configurazione
-st.sidebar.header("🎛️ Control Panel")
-campionato_scelto = st.sidebar.selectbox(
-    "Seleziona Campionato", list(database_squadre.keys())
-)
+# Pannello di controllo laterale
+st.sidebar.header("🎛️ Filtri Analisi")
+campionato = st.sidebar.selectbox("Seleziona Campionato", list(db_campionati.keys()))
 
-squadre_disponibili = list(database_squadre[campionato_scelto].keys())
+squadre = list(db_campionati[campionato].keys())
+st.sidebar.markdown("---")
+casa = st.sidebar.selectbox("Squadra in Casa", squadre, index=0)
+ospite = st.sidebar.selectbox("Squadra Ospite", squadre, index=1 if len(squadre) > 1 else 0)
 
 st.sidebar.markdown("---")
-col_s1, col_s2 = st.sidebar.columns(2)
-with col_s1:
-  squadra_casa = st.selectbox("Squadra Casa", squadre_disponibili, index=0)
-with col_s2:
-  squadra_ospite = st.selectbox(
-      "Squadra Ospite",
-      squadre_disponibili,
-      index=1 if len(squadre_disponibili) > 1 else 0,
-  )
+st.sidebar.subheader("📊 Quote Bookmaker")
+quota_over = st.sidebar.number_input("Quota Over 2.5", 1.01, 10.0, 1.95, 0.05)
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("💰 Quote di Mercato")
-quota_over25 = st.sidebar.number_input(
-    "Quota Over 2.5", min_value=1.01, max_value=10.0, value=1.95, step=0.05
-)
-quota_goal = st.sidebar.number_input(
-    "Quota Goal (BTTS)", min_value=1.01, max_value=10.0, value=1.80, step=0.05
-)
+# Estrazione dati
+d_casa = db_campionati[campionato][casa]
+d_ospite = db_campionati[campionato][ospite]
 
-# Estrazione dati dalle squadre selezionate
-dati_c = database_squadre[campionato_scelto][squadra_casa]
-dati_o = database_squadre[campionato_scelto][squadra_ospite]
-
-# Motore di calcolo analitico
-expected_goals_match = (
-    dati_c["xG_fatti"]
-    + dati_o["xGA_subiti"]
-    + dati_o["xG_fatti"]
-    + dati_c["xGA_subiti"]
+# Calcoli del modello
+xg_match = (
+    d_casa["xG_fatti"]
+    + d_ospite["xGA_subiti"]
+    + d_ospite["xG_fatti"]
+    + d_casa["xGA_subiti"]
 ) / 2
-prob_over25_calc = min(
+prob_over = min(
     max(
-        (expected_goals_match / 2.7) * 100
-        + (dati_c["tiri_porta"] + dati_o["tiri_porta"] - 9) * 1.5,
+        (xg_match / 2.7) * 100
+        + (d_casa["tiri_porta"] + d_ospite["tiri_porta"] - 9) * 1.5,
         15.0,
     ),
     92.0,
 )
-quota_equa_over = round(100 / prob_over25_calc, 2)
-valore_over = round(
-    ((prob_over25_calc / 100) * quota_over25 - 1) * 100, 1
+fair_odd = round(100 / prob_over, 2)
+value_pct = round(((prob_over / 100) * quota_over - 1) * 100, 1)
+
+# Area Visiva Principale
+st.subheader(f"Analisi Scontro: {casa} vs {ospite}")
+
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("xG Stimati Match", round(xg_match, 2))
+c2.metric("Probabilità Over 2.5", f"{round(prob_over, 1)}%")
+c3.metric("Quota Equa", fair_odd)
+c4.metric(
+    "Valore (Edge)",
+    f"+{value_pct}%" if value_pct > 0 else f"{value_pct}%",
+    delta="Value Bet" if value_pct > 3 else "No Value",
 )
-
-# Layout Principale - Visualizzazione Risultati
-st.markdown(
-    f"### ⚔️ Match Analysis: **{squadra_casa} vs {squadra_ospite}**"
-)
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-  st.metric(
-      label="Expected Goals (xG)",
-      value=round(expected_goals_match, 2),
-      delta="Totali Match",
-  )
-with col2:
-  st.metric(
-      label="Probabilità Over 2.5", value=f"{round(prob_over25_calc, 1)}%"
-  )
-with col3:
-  st.metric(label="Quota Equa Modello", value=quota_equa_over)
-with col4:
-  st.metric(
-      label="Value Edge Over 2.5",
-      value=f"+{valore_over}%" if valore_over > 0 else f"{valore_over}%",
-  )
 
 st.markdown("---")
 
-# Sezione esito e consiglio operativo
-col_esito_1, col_esito_2 = st.columns([2, 1])
+# Tabella riassuntiva
+st.markdown("### 📋 Parametri a Confronto")
+df_summary = pd.DataFrame({
+    "Metrica": ["xG Fatti (Media)", "xGA Subiti (Media)", "Tiri in Porta Medi"],
+    casa: [d_casa["xG_fatti"], d_casa["xGA_subiti"], d_casa["tiri_porta"]],
+    ospite: [
+        d_ospite["xG_fatti"],
+        d_ospite["xGA_subiti"],
+        d_ospite["tiri_porta"],
+    ],
+})
+st.dataframe(df_summary, use_container_width=True)
 
-with col_esito_1:
-  st.markdown("#### 📊 Dettaglio Metriche Squadre")
-  df_comparativo = pd.DataFrame({
-      "Indicatore": [
-          "Media xG Fatti",
-          "Media xGA Subiti",
-          "Tiri in Porta Medi",
-      ],
-      squadra_casa: [
-          dati_c["xG_fatti"],
-          dati_c["xGA_subiti"],
-          dati_c["tiri_porta"],
-      ],
-      squadra_ospite: [
-          dati_o["xG_fatti"],
-          dati_o["xGA_subiti"],
-          dati_o["tiri_porta"],
-      ],
-  })
-  st.dataframe(df_comparativo, use_container_width=True)
-
-with col_esito_2:
-  st.markdown("#### 💡 Esito Analisi")
-  if valore_over >= 4.0:
-    st.markdown(
-        f'<div class="highlight-box">🔥 CONSIGLIATO: OVER 2.5<br>Il margine di valore è'
-        f" del +{valore_over}%. Le statistiche offensive di {squadra_casa} e le"
-        f" concessioni di {squadra_ospite} premono per una gara da gol.</div>",
-        unsafe_allow_html=True,
-    )
-  else:
-    st.info(
-        "🛡️ NESSUN VANTAGGIO RILEVATO: Le quote offerte dal bookmaker sono"
-        " perfettamente allineate o inferiori al rischio calcolato dal"
-        " modello. Meglio passare oltre."
-    )
+# Consigli operativi puliti
+if value_pct >= 4.0:
+  st.success(
+      f"🔥 **SEGNALE OPERATIVO**: Il modello rileva un vantaggio del"
+      f" **+{value_pct}%** sull'Over 2.5 rispetto alla quota del bookmaker."
+  )
+else:
+  st.info(
+      "🛡️ **ATTESA**: Margine di valore non sufficiente per procedere con la"
+      " scommessa su questo match."
+  )
