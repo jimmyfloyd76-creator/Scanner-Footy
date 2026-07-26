@@ -19,26 +19,40 @@ st.markdown(
 )
 
 st.markdown(
-    '<div class="main-title">🎯 BOOK KILLER ENGINE (Analisi Varianti & Edge)'
+    '<div class="main-title">🎯 BOOK KILLER ENGINE (xG + SoT Variant Matrix)'
     "</div>",
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<div class="sub-title">Sganciare il calcolo dai database e attaccare le'
-    " inefficienze di quota</div>",
+    '<div class="sub-title">Analisi Avanzata delle Inefficienze di Quota basata'
+    " su xG e Tiri in Porta</div>",
     unsafe_allow_html=True,
 )
 
-# --- SIDEBAR: INPUT MANUALE DI PRECISIONE & QUOTE BOOK ---
-st.sidebar.header("🕹️ Setup Partita & Metriche Tuoi Studi")
+# --- SIDEBAR: INPUT MANUALE DI PRECISIONE & METRICHE ---
+st.sidebar.header("🕹️ Setup Partita & Metriche Studi")
 
 match_nome = st.sidebar.text_input("Match (es. Squadra A vs Squadra B)", "Match #1")
 
-st.sidebar.subheader("📊 Valori Analitici (I Tuoi Studi)")
+st.sidebar.subheader("🏠 Squadra di Casa (Metriche)")
 xg_c = st.sidebar.number_input("xG Prodotti Casa", 0.0, 5.0, 1.55, 0.05)
 xga_c = st.sidebar.number_input("xG Concessi Casa", 0.0, 5.0, 1.10, 0.05)
+sot_f_c = st.sidebar.number_input(
+    "Shots on Target (SoT) Fatti Casa", 0.0, 15.0, 5.2, 0.1
+)
+sot_a_c = st.sidebar.number_input(
+    "Shots on Target (SoT) Subiti Casa", 0.0, 15.0, 3.8, 0.1
+)
+
+st.sidebar.subheader("✈️ Squadra Ospite (Metriche)")
 xg_o = st.sidebar.number_input("xG Prodotti Ospite", 0.0, 5.0, 1.25, 0.05)
 xga_o = st.sidebar.number_input("xG Concessi Ospite", 0.0, 5.0, 1.30, 0.05)
+sot_f_o = st.sidebar.number_input(
+    "Shots on Target (SoT) Fatti Ospite", 0.0, 15.0, 4.4, 0.1
+)
+sot_a_o = st.sidebar.number_input(
+    "Shots on Target (SoT) Subiti Ospite", 0.0, 15.0, 4.9, 0.1
+)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("💰 Quote Reali del Bookmaker")
@@ -60,26 +74,29 @@ q_under = st.sidebar.number_input(
 )
 
 
-# --- MOTORE DI CALCOLO SCENARI E DISINNERVO BOOK ---
-# 1. Calcolo Overround (Lavagna del book) e pulizia della probabilità implicita
+# --- MOTORE DI CALCOLO SCENARI (xG + SoT CORRECTION) ---
+# 1. Calcolo Overround (Lavagna del book)
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
 overround_1x2 = (somma_inversa_1x2 - 1) * 100
 
-# Probabilità reali implicite ripulite dall'aggio del book
-prob_imp_1 = (1 / q_1) / somma_inversa_1x2
-prob_imp_x = (1 / q_x) / somma_inversa_1x2
-prob_imp_2 = (1 / q_2) / somma_inversa_1x2
+# 2. Modello di incrocio avanzato: xG mediati con i tiri in porta effettivi (SoT)
+# Normalizziamo i tiri in porta rispetto a una media standard stimata (es. 4.5 tiri in porta a match)
+fattore_sot_casa = (sot_f_c + sot_a_o) / 9.0
+fattore_sot_ospite = (sot_f_o + sot_a_c) / 9.0
 
-# 2. Modello Poisson Corretto per le varianti del match
-lambda_c = (xg_c + xga_o) / 2
-lambda_o = (xg_o + xga_c) / 2
+# Calcolo dei Lambda (gol attesi corretti dal volume dei tiri nello specchio)
+base_lambda_c = (xg_c + xga_o) / 2
+base_lambda_o = (xg_o + xga_c) / 2
+
+lambda_c = base_lambda_c * (0.75 + 0.25 * fattore_sot_casa)
+lambda_o = base_lambda_o * (0.75 + 0.25 * fattore_sot_ospite)
 
 
 def poisson(lmbda, k):
   return (math.exp(-lmbda) * (lmbda**k)) / math.factorial(k)
 
 
-# Generazione matrice 6x6 per calcolare le varianti esatte
+# Generazione matrice 6x6 per le varianti esatte
 p_1, p_x, p_2 = 0.0, 0.0, 0.0
 p_over25 = 0.0
 
@@ -108,14 +125,20 @@ st.subheader(f"⚔️ Analisi di Scostamento: {match_nome}")
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Lavagna Book (Overround)", f"{round(overround_1x2, 2)}%", delta_color="inverse")
-col2.metric("Lambda Casa (xG Modello)", round(lambda_c, 2))
-col3.metric("Lambda Ospite (xG Modello)", round(lambda_o, 2))
+col2.metric("Lambda Casa Corretto (xG+SoT)", round(lambda_c, 2))
+col3.metric("Lambda Ospite Corretto (xG+SoT)", round(lambda_o, 2))
 
 st.markdown("---")
-st.markdown("### 📊 Tabella Comparativa: Modello (Tuoi Studi) vs Bookmaker")
+st.markdown("### 📊 Tabella Comparativa: Modello (xG + SoT) vs Bookmaker")
 
 df_comparativa = pd.DataFrame({
-    "Mercato / Segno": ["1 (Casa)", "X (Pareggio)", "2 (Ospite)", "Over 2.5", "Under 2.5"],
+    "Mercato / Segno": [
+        "1 (Casa)",
+        "X (Pareggio)",
+        "2 (Ospite)",
+        "Over 2.5",
+        "Under 2.5",
+    ],
     "Quota Book": [q_1, q_x, q_2, q_over, q_under],
     "Prob. Reale Modello": [
         f"{round(p_1*100, 1)}%",
@@ -136,7 +159,9 @@ df_comparativa = pd.DataFrame({
         f"+{round(edge_x, 1)}%" if edge_x > 0 else f"{round(edge_x, 1)}%",
         f"+{round(edge_2, 1)}%" if edge_2 > 0 else f"{round(edge_2, 1)}%",
         f"+{round(edge_over, 1)}%" if edge_over > 0 else f"{round(edge_over, 1)}%",
-        f"+{round(edge_under, 1)}%" if edge_under > 0 else f"{round(edge_under, 1)}%",
+        f"+{round(edge_under, 1)}%"
+        if edge_under > 0
+        else f"{round(edge_under, 1)}%",
     ],
 })
 
@@ -158,14 +183,13 @@ for mercato, val in edges.items():
   if val >= 3.5:
     valori_trovati = True
     st.success(
-        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello calcola un"
-        f" vantaggio stimato del **+{round(val, 1)}%** rispetto alla quota"
-        f" proposta dal banco."
+        f"🔥 **POSSIBILE VALUE BET SU [{mercato}]**: Il tuo modello (basato su"
+        f" xG e tiri in porta) rileva un vantaggio stimato del"
+        f" **+{round(val, 1)}%** rispetto al banco."
     )
 
 if not valori_trovati:
   st.info(
-      "🛡️ **NESSUN VARco EVIDENTE**: Le quote del bookmaker sono strettamente"
-      " allineate al rischio stimato dal modello matematico. Meglio passare"
-      " oltre o cercare varianti live."
+      "🛡️ **NESSUN VARCO EVIDENTE**: Le quote del bookmaker riflettono"
+      " accuratamente il volume dei tiri e degli xG stimati."
   )
