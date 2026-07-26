@@ -68,7 +68,6 @@ def poisson_prob(lmbda, k):
 
 
 # Calcolo degli Expected Goals attesi per il singolo match (Incrocio Forza Attacco / Difesa)
-# Media generale di riferimento del campionato (ipotizzata standard a 2.6 gol a partita)
 media_gol_campionato = 2.6
 
 forza_attacco_casa = xg_fatti_c / (media_gol_campionato / 2)
@@ -76,8 +75,8 @@ forza_difesa_ospite = xga_subiti_o / (media_gol_campionato / 2)
 forza_attacco_ospite = xg_fatti_o / (media_gol_campionato / 2)
 forza_difesa_casa = xga_subiti_c / (media_gol_campionato / 2)
 
-# Correzione basata anche sul volume pulito dei tiri in porta
-fattore_tiri_casa = tiri_porta_c / 4.8  media di riferimento tiri
+# Correzione basata sul volume pulito dei tiri in porta
+fattore_tiri_casa = tiri_porta_c / 4.8
 fattore_tiri_ospite = tiri_porta_o / 4.8
 
 lambda_casa = (
@@ -91,7 +90,7 @@ lambda_ospite = (
 matrice_prob = [[0.0 for _ in range(7)] for _ in range(7)]
 prob_over25 = 0.0
 prob_btts = 0.0
-prob_1x2 = [0.0, 0.0, 0.0]  # 1, X, 2
+prob_1x2 = [0.0, 0.0, 0.0]
 
 for i in range(7):
   for j in range(7):
@@ -118,7 +117,10 @@ edge_over = round(((prob_over25_pct / 100) * quota_over25 - 1) * 100, 1)
 st.subheader(f"⚔️ Analisi Avanzata: {casa_nome} vs {ospite_nome}")
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Expected Goals (Poisson)", f"{round(lambda_casa, 2)} - {round(lambda_ospite, 2)}")
+c1.metric(
+    "Expected Goals (Poisson)",
+    f"{round(lambda_casa, 2)} - {round(lambda_ospite, 2)}",
+)
 c2.metric("Probabilità Over 2.5", f"{round(prob_over25_pct, 1)}%")
 c3.metric("Quota Equa Modello", quota_equa_over)
 c4.metric(
