@@ -3,54 +3,39 @@ import streamlit as st
 
 # Configurazione pagina e layout largo
 st.set_page_config(
-    page_title="Scanner-Footy Pro", page_icon="⚽", layout="wide"
+    page_title="Scanner-Footy Pro v2.0", page_icon="⚽", layout="wide"
 )
 
-# --- CSS FORZATO PER SFONDO SCURO E GRAFICA PROFESSIONALE ---
+# Forzatura dello stile scuro pulito
 st.markdown(
     """
     <style>
-    /* Sfondo generale scuro stile terminale finanziario */
-    .stApp {
-        background-color: #0b0f19 !important;
-        color: #f3f4f6 !important;
-    }
-    /* Header principale */
     .main-title {
-        font-size: 2.4rem;
+        font-size: 2.3rem;
         font-weight: 800;
         color: #38bdf8;
         text-align: center;
-        letter-spacing: 1px;
     }
     .sub-title {
         text-align: center;
         color: #9ca3af;
         margin-bottom: 25px;
-        font-size: 1rem;
-    }
-    /* Box metriche e tabelle */
-    div[data-testid="stMetric"] {
-        background-color: #111827;
-        border: 1px solid #1f2937;
-        padding: 15px;
-        border-radius: 10px;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# Titolo e sottotitolo
 st.markdown(
-    '<div class="main-title">⚽ SCANNER-FOOTY PRO</div>', unsafe_allow_html=True
+    '<div class="main-title">⚽ SCANNER-FOOTY PRO (v2.0)</div>',
+    unsafe_allow_html=True,
 )
 st.markdown(
-    '<div class="sub-title">Advanced xG, Shots & Value Bet Analytics Engine</div>',
+    '<div class="sub-title">Motore Analitico xG & Tiri in Porta</div>',
     unsafe_allow_html=True,
 )
 
-# Database interno strutturato per i campionati di riferimento
+# Database dei campionati e delle squadre
 db_campionati = {
     "Spagna - Segunda División": {
         "Real Zaragoza": {
@@ -170,13 +155,13 @@ db_campionati = {
     },
 }
 
-# Sidebar dei filtri
-st.sidebar.header("🎛️ Pannello di Controllo")
+# Sidebar
+st.sidebar.header("🎛️ Filtri Analisi")
 campionato_sel = st.sidebar.selectbox(
     "Seleziona Campionato", list(db_campionati.keys())
 )
-
 squadre_list = list(db_campionati[campionato_sel].keys())
+
 st.sidebar.markdown("---")
 casa_sel = st.sidebar.selectbox("Squadra in Casa", squadre_list, index=0)
 ospite_sel = st.sidebar.selectbox(
@@ -186,16 +171,15 @@ ospite_sel = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("💰 Parametri di Mercato")
 quota_mercato = st.sidebar.number_input(
     "Quota Over 2.5", min_value=1.01, max_value=10.0, value=1.95, step=0.05
 )
 
-# Estrazione dati delle squadre scelte
+# Estrazione dati
 d_casa = db_campionati[campionato_sel][casa_sel]
 d_ospite = db_campionati[campionato_sel][ospite_sel]
 
-# Motore di calcolo analitico avanzato xG & Tiri
+# Calcoli
 xg_totale = (
     d_casa["xG_fatti"]
     + d_ospite["xGA_subiti"]
@@ -213,13 +197,13 @@ prob_calcolata = min(
 quota_equa = round(100 / prob_calcolata, 2)
 edge_valore = round(((prob_calcolata / 100) * quota_mercato - 1) * 100, 1)
 
-# Sezione Principale
-st.subheader(f"⚔️ Scontro Diretto: {casa_sel} vs {ospite_sel}")
+# Layout
+st.subheader(f"⚔️ Match: {casa_sel} vs {ospite_sel}")
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("xG Stimati Match", round(xg_totale, 2))
-m2.metric("Probabilità Over 2.5", f"{round(prob_calcolata, 1)}%")
-m3.metric("Quota Equa Modello", quota_equa)
+m1.metric("xG Stimati", round(xg_totale, 2))
+m2.metric("Prob. Over 2.5", f"{round(prob_calcolata, 1)}%")
+m3.metric("Quota Equa", quota_equa)
 m4.metric(
     "Valore (Edge)",
     f"+{edge_valore}%" if edge_valore > 0 else f"{edge_valore}%",
@@ -227,15 +211,8 @@ m4.metric(
 )
 
 st.markdown("---")
-
-# Tabella comparativa dettagliata
-st.markdown("### 📊 Tabella Statistica Comparativa")
 df_analisi = pd.DataFrame({
-    "Parametro Statistico": [
-        "Expected Goals Fatti (Media)",
-        "Expected Goals Subiti (Media)",
-        "Tiri in Porta Medi",
-    ],
+    "Parametro": ["xG Fatti", "xGA Subiti", "Tiri in Porta"],
     casa_sel: [
         d_casa["xG_fatti"],
         d_casa["xGA_subiti"],
@@ -249,15 +226,10 @@ df_analisi = pd.DataFrame({
 })
 st.dataframe(df_analisi, use_container_width=True)
 
-# Esito operativo dell'intelligenza analitica
 if edge_valore >= 4.0:
   st.success(
-      f"🔥 **SEGNALE VALUE BET ATTIVO**: Il modello evidenzia un margine di"
-      f" vantaggio del **+{edge_valore}%** rispetto alla quota offerta dal"
-      f" bookmaker sull'Over 2.5."
+      f"🔥 **VALUE BET RILEVATA**: Vantaggio stimato del **+{edge_valore}%**"
+      " sull'Over 2.5."
   )
 else:
-  st.info(
-      "🛡️ **NESSUN VANTAGGIO**: Le quote di mercato sono allineate o inferiori"
-      " al rischio reale calcolato. Si consiglia di monitorare altri match."
-  )
+  st.info("🛡️ Nessun vantaggio significativo rilevato per questo incontro.")
