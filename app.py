@@ -33,6 +33,26 @@ def salva_su_file(archivio):
 if "storico_partite" not in st.session_state:
   st.session_state.storico_partite = carica_archivio()
 
+# Gestione della partita attualmente caricata in memoria
+if "match_corrente" not in st.session_state:
+  st.session_state.match_corrente = {
+      "nome": "Match #1",
+      "xg_c": 1.55,
+      "xga_c": 1.10,
+      "sot_f_c": 5.2,
+      "sot_a_c": 3.8,
+      "xg_o": 1.25,
+      "xga_o": 1.30,
+      "sot_f_o": 4.4,
+      "sot_a_o": 4.9,
+      "q_1": 2.10,
+      "q_x": 3.40,
+      "q_2": 3.60,
+      "q_over": 2.00,
+      "q_under": 1.80,
+      "q_over15_c": 2.20,
+      "q_over15_o": 2.60,
+  }
 
 # --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY ---
 st.markdown(
@@ -101,61 +121,119 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SIDEBAR: INPUT METRICHE ---
+# --- SIDEBAR: GESTIONE ARCHIVIO PARTITE PRIMA DEGLI INPUT ---
 st.sidebar.header("🕹️ Setup Partita & Metriche Studi")
 
-match_nome = st.sidebar.text_input("Match (es. Squadra A vs Squadra B)", "Match #1")
+if st.session_state.storico_partite:
+  st.sidebar.markdown("### 📂 Partite Salvate")
+  match_selezionato = st.sidebar.selectbox(
+      "Seleziona match da richiamare",
+      list(st.session_state.storico_partite.keys()),
+  )
+
+  col_carica, col_elimina = st.sidebar.columns(2)
+  if col_carica.button("📂 Carica"):
+    # Carica i dati della partita selezionata nel match_corrente e ricarica
+    dati_salvati = st.session_state.storico_partite[match_selezionato]
+    st.session_state.match_corrente = dati_salvati.copy()
+    st.session_state.match_corrente["nome"] = match_selezionato
+    st.rerun()
+
+  if col_elimina.button("🗑️ Elimina"):
+    del st.session_state.storico_partite[match_selezionato]
+    salva_su_file(st.session_state.storico_partite)
+    st.rerun()
+  st.sidebar.markdown("---")
+
+# Recuperiamo i valori correnti da passare agli input
+mc = st.session_state.match_corrente
+
+match_nome = st.sidebar.text_input(
+    "Match (es. Squadra A vs Squadra B)", value=mc["nome"]
+)
 
 st.sidebar.subheader("🏠 Squadra di Casa (Metriche)")
-xg_c = st.sidebar.number_input("xG Prodotti Casa", 0.0, 5.0, 1.55, 0.05)
-xga_c = st.sidebar.number_input("xG Concessi Casa", 0.0, 5.0, 1.10, 0.05)
+xg_c = st.sidebar.number_input(
+    "xG Prodotti Casa", 0.0, 5.0, float(mc["xg_c"]), 0.05
+)
+xga_c = st.sidebar.number_input(
+    "xG Concessi Casa", 0.0, 5.0, float(mc["xga_c"]), 0.05
+)
 sot_f_c = st.sidebar.number_input(
-    "Shots on Target (In Porta) Fatti Casa", 0.0, 15.0, 5.2, 0.1
+    "Shots on Target (In Porta) Fatti Casa", 0.0, 15.0, float(mc["sot_f_c"]), 0.1
 )
 sot_a_c = st.sidebar.number_input(
-    "Shots on Target (In Porta) Subiti Casa", 0.0, 15.0, 3.8, 0.1
+    "Shots on Target (In Porta) Subiti Casa", 0.0, 15.0, float(mc["sot_a_c"]), 0.1
 )
 
 st.sidebar.subheader("✈️ Squadra Ospite (Metriche)")
-xg_o = st.sidebar.number_input("xG Prodotti Ospite", 0.0, 5.0, 1.25, 0.05)
-xga_o = st.sidebar.number_input("xG Concessi Ospite", 0.0, 5.0, 1.30, 0.05)
+xg_o = st.sidebar.number_input(
+    "xG Prodotti Ospite", 0.0, 5.0, float(mc["xg_o"]), 0.05
+)
+xga_o = st.sidebar.number_input(
+    "xG Concessi Ospite", 0.0, 5.0, float(mc["xga_o"]), 0.05
+)
 sot_f_o = st.sidebar.number_input(
-    "Shots on Target (In Porta) Fatti Ospite", 0.0, 15.0, 4.4, 0.1
+    "Shots on Target (In Porta) Fatti Ospite",
+    0.0,
+    15.0,
+    float(mc["sot_f_o"]),
+    0.1,
 )
 sot_a_o = st.sidebar.number_input(
-    "Shots on Target (In Porta) Subiti Ospite", 0.0, 15.0, 4.9, 0.1
+    "Shots on Target (In Porta) Subiti Ospite",
+    0.0,
+    15.0,
+    float(mc["sot_a_o"]),
+    0.1,
 )
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("💰 Quote Reali del Bookmaker (1X2 & Totali)")
 q_1 = st.sidebar.number_input(
-    "Quota 1", min_value=1.01, max_value=20.0, value=2.10, step=0.05
+    "Quota 1", min_value=1.01, max_value=20.0, value=float(mc["q_1"]), step=0.05
 )
 q_x = st.sidebar.number_input(
-    "Quota X", min_value=1.01, max_value=20.0, value=3.40, step=0.05
+    "Quota X", min_value=1.01, max_value=20.0, value=float(mc["q_x"]), step=0.05
 )
 q_2 = st.sidebar.number_input(
-    "Quota 2", min_value=1.01, max_value=20.0, value=3.60, step=0.05
+    "Quota 2", min_value=1.01, max_value=20.0, value=float(mc["q_2"]), step=0.05
 )
 
 q_over = st.sidebar.number_input(
-    "Quota Over 2.5", min_value=1.01, max_value=10.0, value=2.00, step=0.05
+    "Quota Over 2.5",
+    min_value=1.01,
+    max_value=10.0,
+    value=float(mc["q_over"]),
+    step=0.05,
 )
 q_under = st.sidebar.number_input(
-    "Quota Under 2.5", min_value=1.01, max_value=10.0, value=1.80, step=0.05
+    "Quota Under 2.5",
+    min_value=1.01,
+    max_value=10.0,
+    value=float(mc["q_under"]),
+    step=0.05,
 )
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("💰 Quote Over 1.5 Squadra")
 q_over15_c = st.sidebar.number_input(
-    "Quota Over 1.5 Casa", min_value=1.01, max_value=10.0, value=2.20, step=0.05
+    "Quota Over 1.5 Casa",
+    min_value=1.01,
+    max_value=10.0,
+    value=float(mc["q_over15_c"]),
+    step=0.05,
 )
 q_over15_o = st.sidebar.number_input(
-    "Quota Over 1.5 Ospite", min_value=1.01, max_value=10.0, value=2.60, step=0.05
+    "Quota Over 1.5 Ospite",
+    min_value=1.01,
+    max_value=10.0,
+    value=float(mc["q_over15_o"]),
+    step=0.05,
 )
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("💾 Gestione Archivio Partite")
+st.sidebar.subheader("💾 Salvataggio")
 
 if st.sidebar.button("📥 Salva Partita Corrente"):
   st.session_state.storico_partite[match_nome] = {
@@ -175,27 +253,10 @@ if st.sidebar.button("📥 Salva Partita Corrente"):
       "q_over15_c": q_over15_c,
       "q_over15_o": q_over15_o,
   }
-  # Salva permanentemente sul file JSON
   salva_su_file(st.session_state.storico_partite)
   st.sidebar.success(
       f"Partita '{match_nome}' salvata permanentemente su disco!"
   )
-
-if st.session_state.storico_partite:
-  st.sidebar.markdown("### 📂 Partite Salvate")
-  match_selezionato = st.sidebar.selectbox(
-      "Seleziona match da richiamare",
-      list(st.session_state.storico_partite.keys()),
-  )
-
-  col_carica, col_elimina = st.sidebar.columns(2)
-  if col_carica.button("📂 Carica"):
-    st.rerun()
-
-  if col_elimina.button("🗑️ Elimina"):
-    del st.session_state.storico_partite[match_selezionato]
-    salva_su_file(st.session_state.storico_partite)
-    st.rerun()
 
 # --- MOTORE DI CALCOLO ---
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
