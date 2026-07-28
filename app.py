@@ -52,6 +52,8 @@ if "match_corrente" not in st.session_state:
       "q_under": 1.80,
       "q_over15_c": 2.20,
       "q_over15_o": 2.60,
+      "q_gol": 1.85,
+      "q_nogol": 1.90,
   }
 
 # --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY ---
@@ -117,7 +119,7 @@ st.markdown(
 )
 st.markdown(
     '<div class="sub-title">Analisi Avanzata delle Inefficienze di Quota (1X2,'
-    " Over/Under 2.5, Over 1.5 Casa/Ospite)</div>",
+    " Over/Under 2.5, Over 1.5, Gol/NoGol)</div>",
     unsafe_allow_html=True,
 )
 
@@ -133,7 +135,6 @@ if st.session_state.storico_partite:
 
   col_carica, col_elimina = st.sidebar.columns(2)
   if col_carica.button("📂 Carica"):
-    # Carica i dati della partita selezionata nel match_corrente e ricarica
     dati_salvati = st.session_state.storico_partite[match_selezionato]
     st.session_state.match_corrente = dati_salvati.copy()
     st.session_state.match_corrente["nome"] = match_selezionato
@@ -233,6 +234,23 @@ q_over15_o = st.sidebar.number_input(
 )
 
 st.sidebar.markdown("---")
+st.sidebar.subheader("💰 Quote Gol / NoGol")
+q_gol = st.sidebar.number_input(
+    "Quota Gol",
+    min_value=1.01,
+    max_value=10.0,
+    value=float(mc.get("q_gol", 1.85)),
+    step=0.05,
+)
+q_nogol = st.sidebar.number_input(
+    "Quota NoGol",
+    min_value=1.01,
+    max_value=10.0,
+    value=float(mc.get("q_nogol", 1.90)),
+    step=0.05,
+)
+
+st.sidebar.markdown("---")
 st.sidebar.subheader("💾 Salvataggio")
 
 if st.sidebar.button("📥 Salva Partita Corrente"):
@@ -252,12 +270,14 @@ if st.sidebar.button("📥 Salva Partita Corrente"):
       "q_under": q_under,
       "q_over15_c": q_over15_c,
       "q_over15_o": q_over15_o,
+      "q_gol": q_gol,
+      "q_nogol": q_nogol,
   }
   salva_su_file(st.session_state.storico_partite)
   st.sidebar.success(
       f"Partita '{match_nome}' salvata permanentemente su disco!"
   )
-  st.rerun()  # Ricarica immediatamente la pagina per aggiornare la selectbox
+  st.rerun()
 
 # --- MOTORE DI CALCOLO ---
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
@@ -282,6 +302,7 @@ p_1, p_x, p_2 = 0.0, 0.0, 0.0
 p_over25 = 0.0
 p_over15_casa = 0.0
 p_over15_ospite = 0.0
+p_gol = 0.0
 
 for i in range(6):
   for j in range(6):
@@ -298,6 +319,10 @@ for i in range(6):
       p_over15_casa += prob_punteggio
     if j >= 2:
       p_over15_ospite += prob_punteggio
+    if i >= 1 and j >= 1:
+      p_gol += prob_punteggio
+
+p_nogol = 1.0 - p_gol
 
 edge_1 = ((p_1 * q_1) - 1) * 100
 edge_x = ((p_x * q_x) - 1) * 100
@@ -306,6 +331,8 @@ edge_over = ((p_over25 * q_over) - 1) * 100
 edge_under = (((1 - p_over25) * q_under) - 1) * 100
 edge_over15_c = ((p_over15_casa * q_over15_c) - 1) * 100
 edge_over15_o = ((p_over15_ospite * q_over15_o) - 1) * 100
+edge_gol = ((p_gol * q_gol) - 1) * 100
+edge_nogol = ((p_nogol * q_nogol) - 1) * 100
 
 # --- DASHBOARD VISIVO ---
 st.subheader(f"⚔️ Analisi di Scostamento: {match_nome}")
@@ -336,6 +363,8 @@ df_comparativa = pd.DataFrame({
         "Under 2.5",
         "Over 1.5 Casa",
         "Over 1.5 Ospite",
+        "Gol (Entrambe Segnano)",
+        "NoGol",
     ],
     "Quota Book": [
         f"{q_1:.2f}",
@@ -345,6 +374,8 @@ df_comparativa = pd.DataFrame({
         f"{q_under:.2f}",
         f"{q_over15_c:.2f}",
         f"{q_over15_o:.2f}",
+        f"{q_gol:.2f}",
+        f"{q_nogol:.2f}",
     ],
     "Prob. Reale Modello": [
         f"{round(p_1*100, 1)}%",
@@ -354,6 +385,8 @@ df_comparativa = pd.DataFrame({
         f"{round((1-p_over25)*100, 1)}%",
         f"{round(p_over15_casa*100, 1)}%",
         f"{round(p_over15_ospite*100, 1)}%",
+        f"{round(p_gol*100, 1)}%",
+        f"{round(p_nogol*100, 1)}%",
     ],
     "Quota Equa Reale": [
         f"{(1 / p_1):.2f}" if p_1 > 0 else "0.00",
@@ -363,6 +396,8 @@ df_comparativa = pd.DataFrame({
         f"{(1 / (1 - p_over25)):.2f}" if (1 - p_over25) > 0 else "0.00",
         f"{(1 / p_over15_casa):.2f}" if p_over15_casa > 0 else "0.00",
         f"{(1 / p_over15_ospite):.2f}" if p_over15_ospite > 0 else "0.00",
+        f"{(1 / p_gol):.2f}" if p_gol > 0 else "0.00",
+        f"{(1 / p_nogol):.2f}" if p_nogol > 0 else "0.00",
     ],
     "Edge (Valore %)": [
         f"+{round(edge_1, 1)}%" if edge_1 > 0 else f"{round(edge_1, 1)}%",
@@ -378,6 +413,10 @@ df_comparativa = pd.DataFrame({
         f"+{round(edge_over15_o, 1)}%"
         if edge_over15_o > 0
         else f"{round(edge_over15_o, 1)}%",
+        f"+{round(edge_gol, 1)}%" if edge_gol > 0 else f"{round(edge_gol, 1)}%",
+        f"+{round(edge_nogol, 1)}%"
+        if edge_nogol > 0
+        else f"{round(edge_nogol, 1)}%",
     ],
 })
 
@@ -408,6 +447,8 @@ tutti_i_mercati = [
     ("Under 2.5", edge_under, q_under, 1 - p_over25),
     ("Over 1.5 Casa", edge_over15_c, q_over15_c, p_over15_casa),
     ("Over 1.5 Ospite", edge_over15_o, q_over15_o, p_over15_ospite),
+    ("Gol", edge_gol, q_gol, p_gol),
+    ("NoGol", edge_nogol, q_nogol, p_nogol),
 ]
 
 tutti_i_mercati.sort(key=lambda x: x[1], reverse=True)
