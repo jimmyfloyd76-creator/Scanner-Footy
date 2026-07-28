@@ -1,4 +1,6 @@
+import json
 import math
+import os
 import pandas as pd
 import streamlit as st
 
@@ -7,6 +9,30 @@ st.set_page_config(
     page_icon="🎯",
     layout="wide",
 )
+
+# --- GESTIONE ARCHIVIO PERSISTENTE (FILE JSON) ---
+ARCHIVIO_FILE = "archivio_partite.json"
+
+
+def carica_archivio():
+  if os.path.exists(ARCHIVIO_FILE):
+    try:
+      with open(ARCHIVIO_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+    except:
+      return {}
+  return {}
+
+
+def salva_su_file(archivio):
+  with open(ARCHIVIO_FILE, "w", encoding="utf-8") as f:
+    json.dump(archivio, f, ensure_ascii=False, indent=4)
+
+
+# Inizializziamo lo stato con i dati salvati su file
+if "storico_partite" not in st.session_state:
+  st.session_state.storico_partite = carica_archivio()
+
 
 # --- PERSONALIZZAZIONE GRAFICA & SFONDO CON IMMAGINE DI VECTEEZY ---
 st.markdown(
@@ -74,10 +100,6 @@ st.markdown(
     " Over/Under 2.5, Over 1.5 Casa/Ospite)</div>",
     unsafe_allow_html=True,
 )
-
-# --- INIZIALIZZAZIONE MEMORIA STORICO (SESSION STATE) ---
-if "storico_partite" not in st.session_state:
-  st.session_state.storico_partite = {}
 
 # --- SIDEBAR: INPUT METRICHE ---
 st.sidebar.header("🕹️ Setup Partita & Metriche Studi")
@@ -153,7 +175,11 @@ if st.sidebar.button("📥 Salva Partita Corrente"):
       "q_over15_c": q_over15_c,
       "q_over15_o": q_over15_o,
   }
-  st.sidebar.success(f"Partita '{match_nome}' salvata con successo!")
+  # Salva permanentemente sul file JSON
+  salva_su_file(st.session_state.storico_partite)
+  st.sidebar.success(
+      f"Partita '{match_nome}' salvata permanentemente su disco!"
+  )
 
 if st.session_state.storico_partite:
   st.sidebar.markdown("### 📂 Partite Salvate")
@@ -168,6 +194,7 @@ if st.session_state.storico_partite:
 
   if col_elimina.button("🗑️ Elimina"):
     del st.session_state.storico_partite[match_selezionato]
+    salva_su_file(st.session_state.storico_partite)
     st.rerun()
 
 # --- MOTORE DI CALCOLO ---
@@ -311,7 +338,6 @@ st.dataframe(df_styled, use_container_width=True)
 st.markdown("---")
 st.markdown("### 🎯 Suggerimento: Un'Unica Giocata Consigliata")
 
-# Raccolta di tutti i mercati con i relativi edge e quote
 tutti_i_mercati = [
     ("1 (Casa)", edge_1, q_1, p_1),
     ("X (Pareggio)", edge_x, q_x, p_x),
@@ -322,7 +348,6 @@ tutti_i_mercati = [
     ("Over 1.5 Ospite", edge_over15_o, q_over15_o, p_over15_ospite),
 ]
 
-# Ordina in base all'edge decrescente per trovare la scommessa con più valore in assoluto
 tutti_i_mercati.sort(key=lambda x: x[1], reverse=True)
 miglior_mercato, miglior_edge, miglior_quota, miglior_prob = tutti_i_mercati[0]
 
