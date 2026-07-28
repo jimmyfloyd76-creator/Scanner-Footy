@@ -257,6 +257,7 @@ if st.sidebar.button("📥 Salva Partita Corrente"):
   st.sidebar.success(
       f"Partita '{match_nome}' salvata permanentemente su disco!"
   )
+  st.rerun()  # Ricarica immediatamente la pagina per aggiornare la selectbox
 
 # --- MOTORE DI CALCOLO ---
 somma_inversa_1x2 = (1 / q_1) + (1 / q_x) + (1 / q_2)
